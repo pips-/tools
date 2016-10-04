@@ -1,0 +1,22 @@
+#!/bin/sh
+
+aligncols="72"
+if [ $# -gt 0 ];
+then
+	aligncols="$1"
+fi
+
+TMPFILE="/tmp/justify.$USER.$$"
+
+cat > $TMPFILE
+
+length=`wc -l $TMPFILE`
+
+echo ".ll $aligncols
+.pl $length
+.nh
+.fi
+`cat $TMPFILE`" | sed 's,\\,\\\\,g' | groff -kT utf8 | cat -s
+
+rm $TMPFILE
+

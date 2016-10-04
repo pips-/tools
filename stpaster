@@ -1,0 +1,95 @@
+#!/usr/bin/tcc -run
+/* vim: set syn=c: */
+
+/*
+ * stpaster intends to pass st(1) terminal content to dmenu(1) for rapid
+ * selection and finaly in xclip(1) for pasting easily.
+ *
+ * Remove empty lines from stdin and output full‐lines, WORDS splited by
+ * space/tab, words splited by work breakers.
+ *
+ * see st & externalpipe patch.
+ * http://st.suckless.org/
+ * http://st.suckless.org/patches/externalpipe
+ *
+ * is_word_break() comes from :
+ * http://st.suckless.org/patches/configwordbreak
+ *
+ * Add to config.h shortcuts :
+ * { MODKEY, 'u', externalpipe, { .s = "stpaster | sort | uniq | dmenu | removenl | xclip -in -selection primary" } },
+ *
+ * memo :
+ * 0x09 - horizontal tab
+ * 0x0a - linefeed
+ * 0x0b - vertical tab
+ * 0x0c - form feed
+ * 0x0d - carriage return
+ * 0x20 - space
+ **/
+
+#include <stdlib.h>
+#include <stdio.h>
+
+#define WORD_BREAK " ()<>[]\",/:'."
+
+static unsigned int is_word_break(char c);
+
+int
+main() {
+	char		*line 	= NULL;
+	size_t		len 	= 0;
+	ssize_t		nread	= 0;
+	unsigned int	i	= 0;
+
+	unsigned int	wasblank 	= 1;
+	unsigned int	emptyline 	= 1;
+
+	while ((nread = getline(&line, &len, stdin)) != -1) {
+		/* remove empty lines */
+		emptyline = 1;
+		for (i = 0; i < nread; ++i)
+			if(line[i] != 0x20 && line[i] != 0x09 && line[i] != 0x0a)
+				emptyline = 0;
+		if (emptyline)
+			continue;
+
+		/* print each lines as is*/
+		printf("%s", line);
+
+		/* split each lines on space/tab */
+		for (i = 0; i < nread; ++i)
+			if (line[i] != 0x20 && line[i] != 0x09) {
+				wasblank = 0;
+				printf("%c", line[i]);
+			} else if (!wasblank) {
+				wasblank = 1;
+				printf("\n");
+			}
+
+		wasblank = 1;
+		/* split each lines on word breaker */
+		for (i = 0; i < nread; ++i)
+			if (!is_word_break(line[i])) {
+				wasblank = 0;
+				printf("%c", line[i]);
+			} else if (!wasblank) {
+				wasblank = 1;
+				printf("\n");
+			}
+	}
+
+	return 0;
+}
+
+unsigned int
+is_word_break(char c) {
+	static char *word_break = WORD_BREAK;
+	char *s = word_break;
+	while (*s) {
+		if (*s == c)
+			return 1;
+		s++;
+	}
+
+	return 0;
+}
