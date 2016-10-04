@@ -1,0 +1,67 @@
+#!/usr/bin/tcc -run
+/* vim: set syn=c: */
+
+#include <stdlib.h>
+#include <stdio.h>
+
+/*
+ * 0x09 - horizontal tab
+ * 0x0a - linefeed
+ * 0x0b - vertical tab
+ * 0x0c - form feed
+ * 0x0d - carriage return
+ * 0x20 - space
+ **/
+
+int
+main() {
+	char	*linein = NULL, *lineout = NULL;
+	size_t	len = 0, lastblankchar = 0;
+	ssize_t	nread;
+
+	unsigned int trimmingleft = 1;
+
+	unsigned int i, j;
+
+	while ((nread = getline(&linein, &len, stdin)) > 0) {
+		trimmingleft = 1;
+		lastblankchar = j = 0;
+
+		lineout = malloc(nread+1);
+
+		for (i = 0; i < nread; ++i) {
+			if (trimmingleft) {
+				if(linein[i] != 0x09 &&
+				   linein[i] != 0x0a &&
+				   linein[i] != 0x0b &&
+				   linein[i] != 0x0c &&
+				   linein[i] != 0x0d &&
+				   linein[i] != 0x20) {
+					trimmingleft = 0;
+				}
+			}
+			if (!trimmingleft){
+				if(linein[i] != 0x09 &&
+				   linein[i] != 0x0a &&
+				   linein[i] != 0x0b &&
+				   linein[i] != 0x0c &&
+				   linein[i] != 0x0d &&
+				   linein[i] != 0x20) {
+					lastblankchar = j + 1;
+				}
+			}
+			if (!trimmingleft) {
+				lineout[j++] = linein[i];
+			}
+		}
+
+		lineout[lastblankchar]   = '\n';
+		lineout[lastblankchar+1] = '\0';
+
+		printf("%s", lineout);
+
+		free(lineout);
+	}
+
+	return 0;
+}

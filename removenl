@@ -1,0 +1,22 @@
+#!/usr/bin/tcc -run
+/* vim: set syn=c: */
+
+#include <stdlib.h>
+#include <stdio.h>
+
+/*
+ * 0x0a - linefeed
+ * 0x0d - carriage return
+ **/
+
+int
+main() {
+	char	buffer;
+	size_t	nread;
+
+	while ((nread = fread(&buffer, 1, sizeof buffer, stdin)) > 0)
+		if (buffer != 0x0a && buffer != 0x0d)
+			fwrite(&buffer, 1, nread, stdout);
+
+	return 0;
+}
