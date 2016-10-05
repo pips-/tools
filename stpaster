@@ -16,7 +16,7 @@
  * http://st.suckless.org/patches/configwordbreak
  *
  * Add to config.h shortcuts :
- * { MODKEY, 'u', externalpipe, { .s = "stpaster | sort | uniq | dmenu | removenl | xclip -in -selection primary" } },
+ * { MODKEY, 'u', externalpipe, {.v = "trim | stpaster | sort -u | dmenu -i -l 5 | removenl | xclip -in -selection c" } },
  *
  * memo :
  * 0x09 - horizontal tab
