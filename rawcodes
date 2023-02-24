@@ -1,0 +1,78 @@
+#!/usr/bin/tcc -run
+/* vim: set syn=c: */
+
+/*
+ * https://viewsourcecode.org/snaptoken/kilo/02.enteringRawMode.html
+ * https://vt100.net/docs/vt100-ug/chapter3.html#CUD
+ * https://stackoverflow.com/questions/59864485/capturing-mouse-in-virtual-terminal-with-ansi-escape
+ * https://stackoverflow.com/questions/5966903/how-to-get-mousemove-and-mouseclick-in-bash/58390575#58390575
+ */
+
+#include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <termios.h>
+#include <unistd.h>
+#include <string.h>
+
+struct termios orig_termios;
+
+void disableRawMode() {
+  tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
+}
+
+void enableRawMode() {
+  tcgetattr(STDIN_FILENO, &orig_termios);
+  atexit(disableRawMode);
+
+  struct termios raw = orig_termios;
+  raw.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
+  raw.c_oflag &= ~(OPOST);
+  raw.c_cflag |= (CS8);
+  raw.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
+
+  tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+}
+
+void disableMouseCapture() {
+	write(STDIN_FILENO, "\x1b[?1000l", 8);
+}
+
+void enableMouseCapture() {
+	atexit(disableMouseCapture);
+
+	write(STDIN_FILENO, "\x1b[?9h", 5); // capture click - X10 compat
+	write(STDIN_FILENO, "\x1b[?1000h", 8); // capture click - X11 button press & release
+	write(STDIN_FILENO, "\x1b[?1001h", 8); // highlight reporting
+	write(STDIN_FILENO, "\x1b[?1002h", 8); // mouvement reporting - report mouvement when button pressed
+	write(STDIN_FILENO, "\x1b[?1003h", 8); // all mouvement reporting
+
+	write(STDIN_FILENO, "\x1b[?1005h", 8); // utf8 reporting
+	write(STDIN_FILENO, "\x1b[?1015h", 8); // decimal value (urvxt)
+	write(STDIN_FILENO, "\x1b[?1006h", 8); // decimal value (xterm)
+}
+
+int main(int argc, char *argv[]) {
+  char c;
+
+  enableRawMode();
+
+  printf("use 'q' to quit - 'q' is 113\r\n");
+
+  if (argc >= 2 && strncmp("-m", argv[1], 2) == 0) {
+	  printf("mouse gesture enabled\r\n");
+
+  	  enableMouseCapture();
+  }
+
+
+  while (read(STDIN_FILENO, &c, 1) == 1 && c != 'q') {
+    if (iscntrl(c)) {
+      printf("%d\r\n", c);
+    } else {
+      printf("%d ('%c')\r\n", c, c);
+    }
+  }
+
+  return 0;
+}
